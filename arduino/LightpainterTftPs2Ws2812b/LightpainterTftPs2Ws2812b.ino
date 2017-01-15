@@ -157,7 +157,7 @@ void loop() {
         break; {
 
         }
-      case 'p' :   //enter
+      case JOYSTICK_RIGHT :   // enter menu
         {
 
           switch (yStep) {
@@ -220,7 +220,7 @@ void loop() {
           break;
         }
 
-      case JOYSTICK_LEFT_UP:  //menu
+      case JOYSTICK_LEFT:  //menu
         {
           menu();
           tft.drawRect(0, yPos, 127, yRowHeight, ST7735_BLACK);
