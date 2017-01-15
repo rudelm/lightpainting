@@ -36,14 +36,10 @@ AnalogMatrixKeypad AnMatrixKeypad(analogPin);
 #define TFT_RST  9  // Reset line for TFT (or see below...)
 #define TFT_DC   8  // Data/command line for TFT
 
-#define SD_CS    5  // Chip select line for SD card
-
-//Use this reset pin for the shield!
-//#define TFT_RST  0  // you can also connect this to the Arduino reset!
+#define SD_CS    4  // Chip select line for SD card
 
 Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
 int ionce = 1;
-int Beep_pin = 6;
 char PressKey;
 //char KeepKey;
 File root;
@@ -124,15 +120,6 @@ void menu() {
   //  tft.print(" 6) Show Menu :\n ");
 
 }
-
-void beep(unsigned char delayms) {
-  analogWrite(Beep_pin, 20); // Almost any value can be used except 0 and 255
-  // experiment to get the best tone
-  delay(delayms); // wait for a delayms ms
-  analogWrite(Beep_pin, 0); // 0 turns it off
-  delay(delayms); // wait for a delayms ms
-}
-
 
 String initCard() {
   if (!SD.begin(SD_CS)) {
