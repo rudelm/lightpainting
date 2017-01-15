@@ -127,7 +127,7 @@ void loop() {
   xVal = analogRead (Xin);
   yVal = analogRead (Yin);
   buttonVal = digitalRead (KEYin);
-  char PressKey;
+  char PressKey = '-';
   
   Serial.print("X = ");
   Serial.println (xVal, DEC);
@@ -172,7 +172,6 @@ void loop() {
   
   if ((PressKey != 'e'))
   {
-    // tft.fillScreen(ST7735_BLACK);
     switch (PressKey) {
       case 'u' :   //up
         {
@@ -214,7 +213,7 @@ void loop() {
               {
                 tft.fillScreen(ST7735_BLACK);
                tft.setRotation(0);
-                bmpDraw("parrot.bmp", 0, 0);
+                //bmpDraw("parrot.bmp", 0, 0);
 
                 delay(1500);
                 break; 
@@ -223,7 +222,7 @@ void loop() {
               {
                 tft.fillScreen(ST7735_BLACK);
                 tft.setRotation(0);
-                bmpDraw("logo.bmp", 0, 0);
+                //bmpDraw("logo.bmp", 0, 0);
 
                 delay(1000);
                 break;
@@ -232,7 +231,7 @@ void loop() {
               {
                 tft.fillScreen(ST7735_BLACK);
              tft.setRotation(0);
-                bmpDraw("lgjoe_h.bmp", 0, 0);
+                //bmpDraw("lgjoe_h.bmp", 0, 0);
 
                 delay(1500);
                 break;
@@ -241,7 +240,7 @@ void loop() {
               {
                 tft.fillScreen(ST7735_BLACK);
                 tft.setRotation(1);
-                bmpDraw("lgjoe128.bmp", 0, 0);
+                //bmpDraw("lgjoe128.bmp", 0, 0);
 
                 delay(1500);
                 break;
