@@ -10,7 +10,10 @@ void setup()
 
 void loop()
 {
-    Serial.println("Joystick points to: " + joystick.directions());
-    Serial.println("Joystick is pressed: " + joystick.isPressed());
+    Serial.println("Joystick points to: " + joystick.direction());
+    Serial.print("Joystick is currently centered: ");
+    Serial.println(joystick.isCentered() ? "true" : "false");
+    Serial.print("Joystick is pressed: ");
+    Serial.println(joystick.isPressed() ? "true" : "false");
     delay(500);
 }
