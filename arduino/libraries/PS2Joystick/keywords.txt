@@ -1,0 +1,12 @@
+#######################################
+# KEYWORD1 for datatypes and classes
+#######################################
+
+PS2Joystick KEYWORD1
+
+#######################################
+# KEYWORD2 and KEYWORD3 for methods and functions
+#######################################
+
+direction KEYWORD2
+pressed KEYWORD3
