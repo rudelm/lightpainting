@@ -35,7 +35,15 @@ This repo contains all interesting lightpainting projects I've tried to create. 
 * [ADAFRUIT_GFX Library](https://github.com/adafruit/Adafruit-GFX-Library) (installed via Arduino IDE) - to ease the use of the TFT
 * SD Library (at least version 1.1 otherwise FAT32 formatted SD cards aren't recognized) - Library to access the SD card readere
 * [ADAFRUIT_ST7735 Library](https://github.com/adafruit/Adafruit-ST7735-Library) (latest from github) - to interface the TFT screen
+* [TFT_ST7735](https://github.com/Bodmer/TFT_ST7735) (altest from github) - faster library with better font support
 * Neopixel Library (installed via Arduino IDE) - for controlling the WS2812B LEDs
+
+### Functionality
+What should be possible after we are finished with this project?
+* Read a BMP with a maximum height of 160px and various widths
+* List stored files from the SD card
+* Select file from list to display
+* Setup parameters (like brightness of LED strip and TFT, speed of drawing columns)
 
 ## License
 coming soon
