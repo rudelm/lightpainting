@@ -37,6 +37,7 @@ This repo contains all interesting lightpainting projects I've tried to create. 
 * [ADAFRUIT_ST7735 Library](https://github.com/adafruit/Adafruit-ST7735-Library) (latest from github) - to interface the TFT screen
 * [TFT_ST7735](https://github.com/Bodmer/TFT_ST7735) (altest from github) - faster library with better font support
 * Neopixel Library (installed via Arduino IDE) - for controlling the WS2812B LEDs
+* PS2Joystick - a small library written by me to have easy access to the joystick movements
 
 ### Functionality
 What should be possible after we are finished with this project?

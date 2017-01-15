@@ -24,6 +24,9 @@
 #include <Adafruit_ST7735.h> // Hardware-specific library
 #include <SPI.h>
 #include <SD.h>
+#include <PS2Joystick.h>
+
+PS2Joystick joystick;
 
 // TFT display and SD card will share the hardware SPI interface.
 // Hardware SPI pins are specific to the Arduino board type and
@@ -35,14 +38,9 @@
 
 #define SD_CS    4  // Chip select line for SD card
 
-// PS2 Joystick
-int Xin= A0; // X Input Pin
-int Yin = A1; // Y Input Pin
-int KEYin = 3; // Push Button
-
 Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
 int ionce = 1;
-char PressKey;
+char joystickDirection;
 //char KeepKey;
 File root;
 int yStep = 0;
@@ -51,8 +49,15 @@ int yRowHeight = 10;
 int yStart = 23;
 
 void setup(void) {
-  pinMode (KEYin, INPUT);
   Serial.begin(9600);
+
+  // read start value right after reset/start
+  // so its best to leave the joystick as is, but you can also hold it in a position to 
+  // set a new default center
+  unsigned int startX = analogRead(A0);
+  unsigned int startY = analogRead(A1);
+  // Arduino Uno Pins A0 for SWX, A1 for SWY and D3 for SW
+  joystick = PS2Joystick(A0, A1, 3, startX, startY); // initialize an instance of the class
   
   // Use this initializer if you're using a 1.8" TFT
   tft.initR(INITR_BLACKTAB);
@@ -122,58 +127,12 @@ String initCard() {
 }
 
 void loop() {
-  int xVal, yVal, buttonVal;
-  
-  xVal = analogRead (Xin);
-  yVal = analogRead (Yin);
-  buttonVal = digitalRead (KEYin);
-  char PressKey = '-';
-  
-  Serial.print("X = ");
-  Serial.println (xVal, DEC);
-  
-  Serial.print ("Y = ");
-  Serial.println (yVal, DEC);
-  
-  Serial.print("Button is ");
-  if (buttonVal == HIGH){
-    Serial.println ("not pressed");
-  }
-  else{
-    Serial.println ("PRESSED");
-    PressKey = 'p'; //enter
-  }
-    
-  delay (100);
+  char joystickDirection = joystick.direction();
 
-  if ((xVal > 500) && (yVal < 430))
+  if ((joystickDirection != JOYSTICK_CENTERED))
   {
-    // left top corner, menu requested
-    PressKey = 'm'; //menu
-  }
-
-  if (xVal > 500)
-  {
-    PressKey = 'u'; //up
-  } else if (xVal < 430)
-  {
-    PressKey = 'd'; //down
-  }
-
-  if (yVal > 500)
-  {
-    PressKey = 'r'; //right
-  } else if (yVal < 430)
-  {
-    PressKey = 'l'; //left
-  }
-
-  
-  
-  if ((PressKey != 'e'))
-  {
-    switch (PressKey) {
-      case 'u' :   //up
+    switch (joystickDirection) {
+      case JOYSTICK_UP :   //up
         {
           tft.drawRect(0, yPos, 127, yRowHeight, ST7735_BLACK);
 
@@ -186,7 +145,7 @@ void loop() {
           tft.drawRect(0, yPos, 127, yRowHeight, ST7735_GREEN);
           break;
         }
-      case 'd' :   //down
+      case JOYSTICK_DOWN :   //down
         tft.drawRect(0, yPos, 127, yRowHeight, ST7735_BLACK);
         if (yStep == 6 ) {
           yStep = 0;
@@ -261,7 +220,7 @@ void loop() {
           break;
         }
 
-      case 'm':  //menu
+      case JOYSTICK_LEFT_UP:  //menu
         {
           menu();
           tft.drawRect(0, yPos, 127, yRowHeight, ST7735_BLACK);
@@ -274,7 +233,7 @@ void loop() {
         break;
     }
   } else {
-    //
+    joystickDirection = joystick.direction();
   }
   delay(20);
 
