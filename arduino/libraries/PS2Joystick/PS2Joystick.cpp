@@ -85,6 +85,12 @@ char PS2Joystick::direction()
         if (xVal > (centerX + threshold)) direction = JOYSTICK_RIGHT;
         if (yVal < (centerX - threshold)) direction = JOYSTICK_UP;
         if (yVal > (centerX + threshold)) direction = JOYSTICK_DOWN;
+
+        // diagonal directions
+        if ((xVal < (centerX - threshold)) && (yVal < (centerX - threshold))) direction = JOYSTICK_LEFT_UP;
+        if ((xVal < (centerX - threshold)) && (yVal > (centerX + threshold))) direction = JOYSTICK_LEFT_DOWN;
+        if ((xVal > (centerX + threshold)) && (yVal < (centerX - threshold))) direction = JOYSTICK_RIGHT_UP;
+        if ((xVal > (centerX + threshold)) && (yVal > (centerX + threshold))) direction = JOYSTICK_RIGHT_DOWN;
         lastValue = millis();
     }
 
