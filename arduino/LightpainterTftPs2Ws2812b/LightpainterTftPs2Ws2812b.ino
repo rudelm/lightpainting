@@ -20,9 +20,6 @@
   Written by Limor Fried/Ladyada for Adafruit Industries.
   MIT license, all text above must be included in any redistribution
  ****************************************************/
-#include "AnalogMatrixKeypad.h" //(8 digitalPin to 1 analogPin keypad 4x4
-#define analogPin 0  // keypad 8 to 1 
-AnalogMatrixKeypad AnMatrixKeypad(analogPin);
 #include <Adafruit_GFX.h>    // Core graphics library
 #include <Adafruit_ST7735.h> // Hardware-specific library
 #include <SPI.h>
@@ -38,6 +35,11 @@ AnalogMatrixKeypad AnMatrixKeypad(analogPin);
 
 #define SD_CS    4  // Chip select line for SD card
 
+// PS2 Joystick
+int Xin= A0; // X Input Pin
+int Yin = A1; // Y Input Pin
+int KEYin = 3; // Push Button
+
 Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
 int ionce = 1;
 char PressKey;
@@ -47,23 +49,14 @@ int yStep = 0;
 int yPos = 0;
 int yRowHeight = 10;
 int yStart = 23;
-int Police_pin = 7;
-bool PoliceState = 0;
-int Siren_pin = 4;
-bool SirenState = 0;
+
 void setup(void) {
-  // Serial.begin(9600);
-  pinMode(5, OUTPUT);
-  pinMode(Police_pin, OUTPUT);
-  digitalWrite(Police_pin, LOW);
-  pinMode(Fire_pin, OUTPUT);
-  digitalWrite(Fire_pin, LOW);
+  pinMode (KEYin, INPUT);
+  Serial.begin(9600);
+  
   // Use this initializer if you're using a 1.8" TFT
   tft.initR(INITR_BLACKTAB);
   tft.fillScreen(ST7735_BLACK);
-  beep(50);
-  beep(50);
-  beep(200);
   String iMsg;
   tft.setTextColor(ST7735_BLUE);
   tft.setTextSize(1);
@@ -129,17 +122,59 @@ String initCard() {
 }
 
 void loop() {
+  int xVal, yVal, buttonVal;
+  
+  xVal = analogRead (Xin);
+  yVal = analogRead (Yin);
+  buttonVal = digitalRead (KEYin);
+  char PressKey;
+  
+  Serial.print("X = ");
+  Serial.println (xVal, DEC);
+  
+  Serial.print ("Y = ");
+  Serial.println (yVal, DEC);
+  
+  Serial.print("Button is ");
+  if (buttonVal == HIGH){
+    Serial.println ("not pressed");
+  }
+  else{
+    Serial.println ("PRESSED");
+    PressKey = 'p'; //enter
+  }
+    
+  delay (100);
 
-  char PressKey = AnMatrixKeypad.readKey();
-  //int aValue = analogRead(analogPin);
-
-  if ((PressKey != KEY_NOT_PRESSED))
+  if ((xVal > 500) && (yVal < 430))
   {
-    beep(10);
+    // left top corner, menu requested
+    PressKey = 'm'; //menu
+  }
 
+  if (xVal > 500)
+  {
+    PressKey = 'u'; //up
+  } else if (xVal < 430)
+  {
+    PressKey = 'd'; //down
+  }
+
+  if (yVal > 500)
+  {
+    PressKey = 'r'; //right
+  } else if (yVal < 430)
+  {
+    PressKey = 'l'; //left
+  }
+
+  
+  
+  if ((PressKey != 'e'))
+  {
     // tft.fillScreen(ST7735_BLACK);
     switch (PressKey) {
-      case '2' :   //up
+      case 'u' :   //up
         {
           tft.drawRect(0, yPos, 127, yRowHeight, ST7735_BLACK);
 
@@ -152,7 +187,7 @@ void loop() {
           tft.drawRect(0, yPos, 127, yRowHeight, ST7735_GREEN);
           break;
         }
-      case '3' :   //down
+      case 'd' :   //down
         tft.drawRect(0, yPos, 127, yRowHeight, ST7735_BLACK);
         if (yStep == 6 ) {
           yStep = 0;
@@ -164,7 +199,7 @@ void loop() {
         break; {
 
         }
-      case '4' :   //enter
+      case 'p' :   //enter
         {
 
           switch (yStep) {
@@ -182,7 +217,6 @@ void loop() {
                 bmpDraw("parrot.bmp", 0, 0);
 
                 delay(1500);
-                beep(200);
                 break; 
               }
             case 2:
@@ -192,7 +226,6 @@ void loop() {
                 bmpDraw("logo.bmp", 0, 0);
 
                 delay(1000);
-                beep(200);
                 break;
               }
             case 3:
@@ -202,7 +235,6 @@ void loop() {
                 bmpDraw("lgjoe_h.bmp", 0, 0);
 
                 delay(1500);
-                beep(200);   
                 break;
               }
             case 4:
@@ -212,21 +244,16 @@ void loop() {
                 bmpDraw("lgjoe128.bmp", 0, 0);
 
                 delay(1500);
-                beep(200);
                 break;
               }
             case 5:
               {
-                digitalWrite(Police_pin, !PoliceState);
-                PoliceState = !PoliceState;
                 yStep = 5 ;
                 tft.drawRect(0, yPos, 127, yRowHeight, ST7735_GREEN);
                 break;
               }
             case 6:
               {
-                digitalWrite(Siren_pin, !SirenState);
-                SirenState = !SirenState;
                 yStep = 6 ;
                 tft.drawRect(0, yPos, 127, yRowHeight, ST7735_GREEN);
                 break;
@@ -235,7 +262,7 @@ void loop() {
           break;
         }
 
-      case '1':  \\menu
+      case 'm':  //menu
         {
           menu();
           tft.drawRect(0, yPos, 127, yRowHeight, ST7735_BLACK);
