@@ -19,16 +19,26 @@ PS2Joystick::PS2Joystick(int X, int Y, int Switch)
     SW = Switch;
 
     pinMode(SW, INPUT);
+
+    // initial value for debounceTime set to 300ms
+    debounceTime = 300;
+}
+
+void PS2Joystick::setDebounceTime(unsigned int time)
+{
+    debounceTime = time;
 }
 
 // method to check directions
 char PS2Joystick::directions()
 {
-    return '-';
+    char direction = JOYSTICK_CENTERED;
+
+    return direction;
 }
 
 // method to check if center button is pressed
-bool PS2Joystick::pressed()
+bool PS2Joystick::isPressed()
 {
     buttonVal = digitalRead(SW);
     if (buttonVal == HIGH)
