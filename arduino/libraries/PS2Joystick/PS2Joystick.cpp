@@ -11,8 +11,13 @@
 #endif
 #include "PS2Joystick.h"
 
+PS2Joystick::PS2Joystick()
+{
+    // empty constructor
+}
+
 // parametrized constructor
-PS2Joystick::PS2Joystick(int X, int Y, int Switch)
+PS2Joystick::PS2Joystick(int X, int Y, int Switch, unsigned int startX, unsigned int startY)
 {
     VRx = X;
     VRy = Y;
@@ -26,7 +31,8 @@ PS2Joystick::PS2Joystick(int X, int Y, int Switch)
     // inital threshold value for read Joystick movement values
     threshold = 10;
 
-    calibrateCenter();
+    centerX = startX;
+    centerY = startY;
 }
 
 void PS2Joystick::setDebounceTime(unsigned int time)
@@ -34,22 +40,27 @@ void PS2Joystick::setDebounceTime(unsigned int time)
     debounceTime = time;
 }
 
-void PS2Joystick::calibrateCenter()
-{
-    // get the default centered values when the joystick is left alone during initialization
-    centeredX = analogRead(VRx);
-    centeredY = analogRead(VRy);
-}
-
 bool PS2Joystick::isCentered()
 {
     int xVal, yVal;
+    bool xCentered = true;
+    bool yCentered = true;
 
     xVal = analogRead (VRx);
     yVal = analogRead (VRy);
 
-    if ( (xVal < (xVal - threshold)) && (xVal > (xVal + threshold))
-    && ( (yVal < (yVal - threshold)) && (yVal > (yVal + threshold))))
+    // check x coordinates first
+    if ((xVal < (centerX - threshold)) || (xVal > (centerX + threshold)))
+    {
+        xCentered = false;
+    }
+    // check y coordinates second
+    if ((yVal < (centerY - threshold)) || (yVal > (centerY + threshold)))
+    {
+        yCentered = false;
+    }
+
+    if (xCentered && yCentered)
     {
         return true;
     }
@@ -57,7 +68,6 @@ bool PS2Joystick::isCentered()
     {
         return false;
     }
-
 }
 
 // method to check directions
@@ -71,10 +81,10 @@ char PS2Joystick::direction()
 
     if(!isCentered() && ((millis() - lastValue) >= debounceTime))
     {
-        if (xVal < (centeredX - threshold)) direction = JOYSTICK_LEFT;
-        if (xVal > (centeredX + threshold)) direction = JOYSTICK_RIGHT;
-        if (yVal < (centeredX - threshold)) direction = JOYSTICK_UP;
-        if (yVal > (centeredX + threshold)) direction = JOYSTICK_DOWN;
+        if (xVal < (centerX - threshold)) direction = JOYSTICK_LEFT;
+        if (xVal > (centerX + threshold)) direction = JOYSTICK_RIGHT;
+        if (yVal < (centerX - threshold)) direction = JOYSTICK_UP;
+        if (yVal > (centerX + threshold)) direction = JOYSTICK_DOWN;
         lastValue = millis();
     }
 

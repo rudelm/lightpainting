@@ -20,19 +20,19 @@
 class PS2Joystick
 {
 public:
-    PS2Joystick(int, int, int);
+    PS2Joystick(); // empty constructor
+    PS2Joystick(int, int, int, unsigned int, unsigned int);
     char direction(); // method to read out the current direction
     bool isPressed(); // method to check if the center button was pressed
     bool isCentered(); // method to check if the joystick is centered
     void setDebounceTime(unsigned int debounceTime); // method to set read out debounce time
-    void calibrateCenter(); // method to calibrate the joystick center
 private:
     int VRx; // pin for VRx
     int VRy; // pin for VRy
     int SW; // pin for SW
     unsigned int debounceTime;
-    unsigned int centeredX;
-    unsigned int centeredY;
+    unsigned int centerX;
+    unsigned int centerY;
     unsigned int threshold; // to flatten read out values for the Joystick movement
     long lastValue; // last recorded time of millis() call
 };
