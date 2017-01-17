@@ -25,6 +25,10 @@
 #include <SPI.h>
 #include <SD.h>
 #include <PS2Joystick.h>
+#include <menuPrint.h> //Print (Serial) menu
+#include <menuGFX.h>
+#include <menu.h> //menu macros and objects
+#include <menuFields.h>
 
 PS2Joystick joystick;
 
@@ -39,14 +43,8 @@ PS2Joystick joystick;
 #define SD_CS    4  // Chip select line for SD card
 
 Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
-int ionce = 1;
 char joystickDirection;
-//char KeepKey;
 File root;
-int yStep = 0;
-int yPos = 0;
-int yRowHeight = 10;
-int yStart = 23;
 
 void setup(void) {
   Serial.begin(9600);
@@ -62,61 +60,8 @@ void setup(void) {
   // Use this initializer if you're using a 1.8" TFT
   tft.initR(INITR_BLACKTAB);
   tft.fillScreen(ST7735_BLACK);
-  String iMsg;
-  tft.setTextColor(ST7735_BLUE);
-  tft.setTextSize(1);
-  iMsg =  initCard();
-  tft.setCursor(0, 110);
-  tft.print(iMsg);
 
-  menu();
   delay(500);
-}
-
-
-void menu() {
-  if (ionce == 1) {
-    yStep = 0;
-    yPos = yStart;
-    tft.drawRect(0, yStart, 127, yRowHeight, ST7735_GREEN);
-
-    ionce++;
-  } else {
-    tft.fillScreen(ST7735_BLACK);
-
-  }
-
-  //tft.stroke(255,255,255);
-
-  // set the fill color to grey
-  // tft.fill(0,0,0);
-
-  // draw a rectangle in the center of screen
-  tft.drawRect(0, 0, 127, 20, ST7735_WHITE);
-  tft.setTextColor(ST7735_YELLOW);
-  tft.setTextSize(1);
-  // tft.stroke(0, 255, 0);
-
-
-  tft.setCursor(0, 10);
-  tft.print(" Menu? (<,>,Select)");
-  tft.setCursor(0, 25);
-  tft.print(" 1)List Files");
-  tft.setCursor(0, 35);
-  tft.print(" 2)Display Parrot");
-  tft.setCursor(0, 45);
-  tft.print(" 3)Display Image2");
-  tft.setCursor(0, 55);
-  tft.print(" 4)Display Image3");
-  tft.setCursor(0, 65);
-  tft.print(" 5)Rotate Image4");
-  tft.setCursor(0, 75);
-  tft.print(" 6)Police/Ambulance");
-  tft.setCursor(0, 85);
-  tft.print(" 7)Siren On/Off");
-  //  tft.setCursor(0, 75);
-  //  tft.print(" 6) Show Menu :\n ");
-
 }
 
 String initCard() {
@@ -128,115 +73,6 @@ String initCard() {
 
 void loop() {
   char joystickDirection = joystick.direction();
-
-  if ((joystickDirection != JOYSTICK_CENTERED))
-  {
-    switch (joystickDirection) {
-      case JOYSTICK_UP :   //up
-        {
-          tft.drawRect(0, yPos, 127, yRowHeight, ST7735_BLACK);
-
-          if (yStep == 0) {
-            yStep = 6;
-          } else {
-            yStep--;
-          }
-          yPos = yStart + yRowHeight * yStep;
-          tft.drawRect(0, yPos, 127, yRowHeight, ST7735_GREEN);
-          break;
-        }
-      case JOYSTICK_DOWN :   //down
-        tft.drawRect(0, yPos, 127, yRowHeight, ST7735_BLACK);
-        if (yStep == 6 ) {
-          yStep = 0;
-        } else {
-          yStep++;
-        }
-        yPos = yStart + yRowHeight * yStep;
-        tft.drawRect(0, yPos, 127, yRowHeight, ST7735_GREEN);
-        break; {
-
-        }
-      case JOYSTICK_RIGHT :   // enter menu
-        {
-
-          switch (yStep) {
-            case 0:
-              {
-                tft.fillScreen(ST7735_BLACK);
-                root = SD.open("/");
-                printDirectory(root, 0);
-                break;
-              }
-            case 1:
-              {
-                tft.fillScreen(ST7735_BLACK);
-               tft.setRotation(0);
-                //bmpDraw("parrot.bmp", 0, 0);
-
-                delay(1500);
-                break; 
-              }
-            case 2:
-              {
-                tft.fillScreen(ST7735_BLACK);
-                tft.setRotation(0);
-                //bmpDraw("logo.bmp", 0, 0);
-
-                delay(1000);
-                break;
-              }
-            case 3:
-              {
-                tft.fillScreen(ST7735_BLACK);
-             tft.setRotation(0);
-                //bmpDraw("lgjoe_h.bmp", 0, 0);
-
-                delay(1500);
-                break;
-              }
-            case 4:
-              {
-                tft.fillScreen(ST7735_BLACK);
-                tft.setRotation(1);
-                //bmpDraw("lgjoe128.bmp", 0, 0);
-
-                delay(1500);
-                break;
-              }
-            case 5:
-              {
-                yStep = 5 ;
-                tft.drawRect(0, yPos, 127, yRowHeight, ST7735_GREEN);
-                break;
-              }
-            case 6:
-              {
-                yStep = 6 ;
-                tft.drawRect(0, yPos, 127, yRowHeight, ST7735_GREEN);
-                break;
-              }
-          }
-          break;
-        }
-
-      case JOYSTICK_LEFT:  //menu
-        {
-          menu();
-          tft.drawRect(0, yPos, 127, yRowHeight, ST7735_BLACK);
-          yStep = 0;
-          yPos = yStart;
-          tft.drawRect(0, yPos, 127, yRowHeight, ST7735_GREEN);
-          break;
-        }
-      default:
-        break;
-    }
-  } else {
-    joystickDirection = joystick.direction();
-  }
-  delay(20);
-
 }
 
 
