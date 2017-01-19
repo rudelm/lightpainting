@@ -46,6 +46,78 @@ Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
 char joystickDirection;
 File root;
 
+//aux vars
+int ledCtrl=0;
+int percent;//just testing changing this var
+int counter=0;
+
+///////////////////////////////////////////////////////////////////////////
+//functions to wire as menu actions
+bool ledOn() {
+  Serial.println("set led on!");
+  return false;
+}
+
+bool ledOff() {
+  Serial.println("set led off!");
+  return false;
+}
+
+bool quit() {
+  Serial.println("Quiting after action call");
+  return true;
+}
+
+/////////////////////////////////////////////////////////////////////////
+// MENU DEFINITION
+// here we define the menu structure and wire actions functions to it
+// empty options are just for scroll testing
+
+TOGGLE(ledCtrl,setLed,"Led: ",
+    VALUE("On",HIGH,ledOn),
+    VALUE("Off",LOW,ledOff)
+);
+
+int selTest=0;
+SELECT(selTest,selMenu,"Select",
+  VALUE("Zero",0),
+  VALUE("One",1),
+  VALUE("Two",2)
+);
+
+int chooseTest=-1;
+CHOOSE(chooseTest,chooseMenu,"Choose ",
+  VALUE("First",1),
+  VALUE("Second",2),
+  VALUE("Third",3),
+  VALUE("Last",-1)
+);
+
+MENU(subMenu,"SubMenu"
+  ,OP("A",quit)
+  ,OP("B",quit)
+  ,OP("C",quit)
+  ,OP("D",quit)
+  ,OP("E",quit)
+  ,OP("F",quit)
+  ,OP("G",quit)
+  ,OP("H",quit)
+);
+
+MENU(mainMenu,"Main menu",
+  SUBMENU(setLed),
+  OP("LED On",ledOn),
+  OP("LED Off",ledOff),
+  SUBMENU(selMenu),
+  SUBMENU(chooseMenu),
+  SUBMENU(subMenu),
+  FIELD(percent,"Percent","%",0,100,10,1)
+);
+
+//describing a menu output, alternatives so far are Serial or LiquidCrystal LCD
+menuGFX gfx(tft,BLUE,BLACK,WHITE,SILVER,6,9);
+
+
 void setup(void) {
   Serial.begin(9600);
 
@@ -57,11 +129,22 @@ void setup(void) {
   // Arduino Uno Pins A0 for SWX, A1 for SWY and D3 for SW
   joystick = PS2Joystick(A0, A1, 3, startX, startY); // initialize an instance of the class
   
-  // Use this initializer if you're using a 1.8" TFT
+  SPI.begin();
   tft.initR(INITR_BLACKTAB);
+  tft.setRotation(3);
+  tft.setTextWrap(false);
+  tft.setTextColor(ST7735_RED,ST7735_BLACK);
+  //tft.setTextSize(2);
+  //gfx.resX*=2;//update resolution after font size change
+  //gfx.resY*=2;//update resolution after font size change
   tft.fillScreen(ST7735_BLACK);
-
-  delay(500);
+  tft.print("Menu test on GFX");
+  //testing menu limits (not using all the screen)
+  //size is within screen limits even after rotation
+  //this limits are not constrained, please ensure your text fits
+  gfx.maxX=16;
+  gfx.maxY=5;
+  gfx.bgColor=SILVER;
 }
 
 String initCard() {
@@ -73,6 +156,7 @@ String initCard() {
 
 void loop() {
   char joystickDirection = joystick.direction();
+
 }
 
 
