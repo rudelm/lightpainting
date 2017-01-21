@@ -78,10 +78,11 @@ String initCard() {
 
 void loop() {
   tft.fillScreen(ST7735_BLACK);
+  tft.setCursor(0, 0);
   char joystickDirection = joystick.direction();
   tft.print("Current joystick direction: ");
-  tft.drawChar(joystickDirection);
-  delay(100);
+  tft.println(joystickDirection);
+  delay(1000);
 }
 
 
