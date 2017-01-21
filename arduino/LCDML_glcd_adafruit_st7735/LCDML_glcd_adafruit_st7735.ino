@@ -15,10 +15,14 @@
   #include <Adafruit_GFX.h>    // Core graphics library
   #include <Adafruit_ST7735.h> // Hardware-specific library
   #include <PS2Joystick.h>
+  #include <SD.h>
 
   
   // lib config
   #define _LCDML_DISP_cfg_button_press_time          200    // button press time in ms
+
+  // SD Card reader
+  File dir;
 
 // *********************************************************************
 // Adafruit TFT_ST7735
@@ -88,7 +92,7 @@
   
   // LCDMenuLib_add(id, group, prev_layer_element, new_element_num, lang_char_array, callback_function)
   LCDML_DISP_init(_LCDML_DISP_cnt);
-  LCDML_DISP_add      (0  , _LCDML_G1  , LCDML_root        , 1  , "Information"        , LCDML_FUNC_information);
+  LCDML_DISP_add      (0  , _LCDML_G1  , LCDML_root        , 1  , "List files"         , LCDML_FUNC_listFiles);
   LCDML_DISP_add      (1  , _LCDML_G1  , LCDML_root        , 2  , "Time info"          , LCDML_FUNC_timer_info);
   LCDML_DISP_add      (2  , _LCDML_G1  , LCDML_root        , 3  , "Settings"           , LCDML_FUNC);
   LCDML_DISP_add      (3  , _LCDML_G1  , LCDML_root_3      , 1  , "Change value"       , LCDML_FUNC);
@@ -137,6 +141,13 @@
 
     SPI.begin();
 
+    if (!SD.begin(SD_CS)) {
+      Serial.println(" SdCard failed");
+    } else
+    {
+      Serial.println(" SdCard init...OK!");      
+    }
+
     // Our supplier changed the 1.8" display slightly after Jan 10, 2012
     // so that the alignment of the TFT had to be shifted by a few pixels
     // this just means the init code is slightly different. Check the
@@ -151,6 +162,8 @@
     //tft.initR(INITR_REDTAB);   // initialize a ST7735R chip, red tab
     // If your TFT's plastic wrap has a Green Tab, use the following:
     //tft.initR(INITR_GREENTAB); // initialize a ST7735R chip, green tab
+
+    display.setRotation(2);
 
     // clear lcd
     display.fillScreen(_LCDML_ADAFRUIT_BACKGROUND_COLOR);

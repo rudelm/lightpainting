@@ -40,10 +40,41 @@
  * ===================================================================== * 
  */
 
+void printDirectory(File dir, int numTabs) {
+  while (true) {
+    display.setCursor(0, _LCDML_ADAFRUIT_FONT_H * 2); // line 2
+    
+    File entry =  dir.openNextFile();
+    if (! entry) {
+      // no more files
+      break;
+    }
+    for (uint8_t i = 0; i < numTabs; i++) {
+      display.println(F("\t"));
+      Serial.print('\t');
+    }
+    Serial.print(entry.name());
+    if (entry.isDirectory()) {
+      display.println(F("/"));
+      Serial.println("/");
+      printDirectory(entry, numTabs + 1);
+    } else {
+      // files have sizes, directories do not
+      display.println(F("\t\t"));
+      Serial.print("\t\t");
+      display.println(F("entry.size(), DEC"));
+      Serial.println(entry.size(), DEC);
+    }
+    entry.close();
+  }
+}
+
 // *********************************************************************
-void LCDML_DISP_setup(LCDML_FUNC_information)
+void LCDML_DISP_setup(LCDML_FUNC_listFiles)
 // *********************************************************************
 {
+  // read SD card content
+  dir = SD.open("/");
   // setup function
   // clear lcd
   display.fillScreen(_LCDML_ADAFRUIT_BACKGROUND_COLOR); 
@@ -53,27 +84,28 @@ void LCDML_DISP_setup(LCDML_FUNC_information)
   display.setTextSize(_LCDML_ADAFRUIT_FONT_SIZE);
 
   display.setCursor(0, _LCDML_ADAFRUIT_FONT_H * 0); // line 0
-  display.println(F("To close this")); 
+  display.println(F("SD Card content:")); 
   display.setCursor(0, _LCDML_ADAFRUIT_FONT_H * 1); // line 1
-  display.println(F("function press")); 
-  display.setCursor(0, _LCDML_ADAFRUIT_FONT_H * 2); // line 2
-  display.println(F("any button or use")); 
+  display.println(F("================"));
+
   display.setCursor(0, _LCDML_ADAFRUIT_FONT_H * 3); // line 3
   display.println(F("back button")); 
-   
+
+
+  printDirectory(dir, 0);
 }
 
-void LCDML_DISP_loop(LCDML_FUNC_information) 
+void LCDML_DISP_loop(LCDML_FUNC_listFiles) 
 {
   // loop function, can be run in a loop when LCDML_DISP_triggerMenu(xx) is set
   // the quit button works in every DISP function without any checks; it starts the loop_end function   
   if(LCDML_BUTTON_checkAny()) { // check if any button is presed (enter, up, down, left, right)
     // LCDML_DISP_funcend calls the loop_end function
     LCDML_DISP_funcend();
-  } 
+  }
 }
 
-void LCDML_DISP_loop_end(LCDML_FUNC_information)
+void LCDML_DISP_loop_end(LCDML_FUNC_listFiles)
 {
   // this functions is ever called when a DISP function is quit
   // you can here reset some global vars or do nothing    
