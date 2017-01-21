@@ -65,8 +65,18 @@ void setup(void) {
 void loadScreen() {
   tft.fillScreen(ST7735_BLACK);
   tft.println("Lightpainting Stick is booting.");
-  tft.println(initCard());
-  delay(1000); 
+  Serial.println("Lightpainting Stick is booting.");
+  String result = initCard();
+  tft.println(result);
+  Serial.println(result);
+  delay(1000);
+
+  root = SD.open("/");
+
+  tft.fillScreen(ST7735_BLACK);
+  tft.setCursor(0, 0);
+  printDirectory(root, 0);
+  delay(1000);
 }
 
 String initCard() {
@@ -77,6 +87,9 @@ String initCard() {
 }
 
 void loop() {
+}
+
+void showJoystickDirection() {
   tft.fillScreen(ST7735_BLACK);
   tft.setCursor(0, 0);
   char joystickDirection = joystick.direction();
@@ -85,35 +98,38 @@ void loop() {
   delay(1000);
 }
 
-
-
 void printDirectory(File dir, int numTabs) {
   // Begin at the start of the directory
   dir.rewindDirectory();
-  tft.setCursor(0, 10);
-  tft.println("List Files:");
-  tft.drawLine(0, 20, tft.width() / 2, 20, ST7735_YELLOW);
-  tft.println("");
+  //tft.setCursor(0, 10);
+  //tft.println("List Files:");
+  //tft.drawLine(0, 20, tft.width() / 2, 20, ST7735_YELLOW);
+  //tft.println("");
   while (true) {
     File entry =  dir.openNextFile();
     if (! entry) {
       // no more files
-      //Serial.println("**nomorefiles**");
+      Serial.println("**nomorefiles**");
       break;
     }
     for (uint8_t i = 0; i < numTabs; i++) {
       tft.print('\t');   // we'll have a nice indentation
+      Serial.print('\t');
     }
     // Print the 8.3 name
     tft.print(entry.name());
+    Serial.print(entry.name());
     // Recurse for directories, otherwise print the file size
     if (entry.isDirectory()) {
       tft.println("/");
+      Serial.println("/");
       printDirectory(entry, numTabs + 1);
     } else {
       // files have sizes, directories do not
       tft.print("\t\t");
       tft.println(entry.size(), DEC);
+      Serial.print("\t\t");
+      Serial.println(entry.size(), DEC);
     }
     entry.close();
   }
