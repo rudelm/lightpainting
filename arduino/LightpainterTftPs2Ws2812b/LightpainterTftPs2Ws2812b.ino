@@ -41,6 +41,7 @@ PS2Joystick joystick;
 Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
 char joystickDirection;
 File root;
+File current;
 
 void setup(void) {
   Serial.begin(9600);
@@ -60,6 +61,13 @@ void setup(void) {
   tft.setTextColor(ST7735_WHITE);
 
   loadScreen();
+
+  //only bmp files are supported inside this folder
+  root = SD.open("/bmp");
+
+  tft.fillScreen(ST7735_BLACK);
+  tft.setCursor(0, 0);
+  delay(1000);
 }
 
 void loadScreen() {
@@ -70,23 +78,52 @@ void loadScreen() {
   tft.println(result);
   Serial.println(result);
   delay(1000);
-
-  root = SD.open("/");
-
-  tft.fillScreen(ST7735_BLACK);
-  tft.setCursor(0, 0);
-  printDirectory(root, 0);
-  delay(1000);
 }
 
 String initCard() {
   if (!SD.begin(SD_CS)) {
     return " SdCard failed";
   }
+  // Begin at the start of the directory
+  root.rewindDirectory();
   return " SdCard init...OK!";
 }
 
 void loop() {
+  switch(joystick.direction()) {
+    case JOYSTICK_RIGHT:
+      current = root.openNextFile();
+      break;
+    default:
+      break;
+  }
+  filename(root);
+  delay(1000);
+}
+
+void filename(File dir) {
+  tft.fillScreen(ST7735_BLACK);
+  tft.setCursor(0, 0);
+  if (current == NULL) {
+    current = dir.openNextFile();    
+  }
+  if (!current) {
+    // no files found, rewind
+    dir.rewindDirectory();
+  }
+
+  if (current.isDirectory()) {
+    Serial.println("Skipping found directory");
+    tft.println("Skipping found directory");
+    current = dir.openNextFile();
+  }
+
+  tft.println(current.name());
+  Serial.println(current.name());
+
+  // files have sizes, directories do not
+  tft.println(current.size(), DEC);
+  Serial.println(current.size(), DEC);
 }
 
 void showJoystickDirection() {
@@ -98,42 +135,6 @@ void showJoystickDirection() {
   delay(1000);
 }
 
-void printDirectory(File dir, int numTabs) {
-  // Begin at the start of the directory
-  dir.rewindDirectory();
-  //tft.setCursor(0, 10);
-  //tft.println("List Files:");
-  //tft.drawLine(0, 20, tft.width() / 2, 20, ST7735_YELLOW);
-  //tft.println("");
-  while (true) {
-    File entry =  dir.openNextFile();
-    if (! entry) {
-      // no more files
-      Serial.println("**nomorefiles**");
-      break;
-    }
-    for (uint8_t i = 0; i < numTabs; i++) {
-      tft.print('\t');   // we'll have a nice indentation
-      Serial.print('\t');
-    }
-    // Print the 8.3 name
-    tft.print(entry.name());
-    Serial.print(entry.name());
-    // Recurse for directories, otherwise print the file size
-    if (entry.isDirectory()) {
-      tft.println("/");
-      Serial.println("/");
-      printDirectory(entry, numTabs + 1);
-    } else {
-      // files have sizes, directories do not
-      tft.print("\t\t");
-      tft.println(entry.size(), DEC);
-      Serial.print("\t\t");
-      Serial.println(entry.size(), DEC);
-    }
-    entry.close();
-  }
-}
 
 // This function opens a Windows Bitmap (BMP) file and
 // displays it at the given coordinates.  It's sped up
