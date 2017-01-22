@@ -38,6 +38,8 @@ PS2Joystick joystick;
 
 #define SD_CS    4  // Chip select line for SD card
 
+#define BMP_PATH "/bmp"
+
 Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
 char joystickDirection;
 File root;
@@ -63,7 +65,7 @@ void setup(void) {
   loadScreen();
 
   //only bmp files are supported inside this folder
-  root = SD.open("/bmp");
+  root = SD.open(BMP_PATH);
 
   tft.fillScreen(ST7735_BLACK);
   tft.setCursor(0, 0);
@@ -98,6 +100,17 @@ void loop() {
       break;
   }
   filename(root);
+
+  if (joystick.isPressed()) {
+    String filename = String(BMP_PATH) + "/" + String(current.name());
+    tft.println("Loading image: " + filename);
+    Serial.println("Loading image: " + filename);
+    char charFileName[filename.length() + 1];
+    filename.toCharArray(charFileName, sizeof(charFileName));
+    bmpDraw(charFileName, 0, 0);
+    delay(2000);
+  }
+  
   delay(1000);
 }
 
@@ -122,8 +135,10 @@ void filename(File dir) {
   Serial.println(current.name());
 
   // files have sizes, directories do not
-  tft.println(current.size(), DEC);
-  Serial.println(current.size(), DEC);
+  tft.print(current.size(), DEC);
+  tft.println(" bytes");
+  Serial.print(current.size(), DEC);
+  Serial.println(" bytes");
 }
 
 void showJoystickDirection() {
