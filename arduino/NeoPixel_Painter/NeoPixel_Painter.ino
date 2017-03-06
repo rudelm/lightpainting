@@ -1,32 +1,3 @@
-/***************************************************
-  This is a library for the Adafruit 1.8" SPI display.
-
-  This library works with the Adafruit 1.8" TFT Breakout w/SD card
-  ----> http://www.adafruit.com/products/358
-  The 1.8" TFT shield
-  ----> https://www.adafruit.com/product/802
-  The 1.44" TFT breakout
-  ----> https://www.adafruit.com/product/2088
-  as well as Adafruit raw 1.8" TFT display
-  ----> http://www.adafruit.com/products/618
-
-  Check out the links above for our tutorials and wiring diagrams
-  These displays use SPI to communicate, 4 or 5 pins are required to
-  interface (RST is optional)
-  Adafruit invests time and resources providing this open source code,
-  please support Adafruit and open-source hardware by purchasing
-  products from Adafruit!
-
-  Written by Limor Fried/Ladyada for Adafruit Industries.
-  MIT license, all text above must be included in any redistribution
- ****************************************************/
-#include <Adafruit_GFX.h>    // Core graphics library
-#include <Adafruit_ST7735.h> // Hardware-specific library
-#include <SPI.h>
-#include <PS2Joystick.h>
-#include <Adafruit_NeoPixel.h>
-
-
 // ADAFRUIT NEOPIXEL LIGHT PAINTER SKETCH: Reads 24-bit BMP image from
 // SD card, plays back on NeoPixel strip for long-exposure photography.
 
@@ -60,24 +31,10 @@
 
 // Written by Phil Burgess / Paint Your Dragon for Adafruit Industries.
 // BSD license, all text above must be included in any redistribution.
+
 #include <SdFat.h>
 #include <avr/pgmspace.h>
 #include "./gamma.h"
-
-PS2Joystick joystick;
-
-// TFT display and SD card will share the hardware SPI interface.
-// Hardware SPI pins are specific to the Arduino board type and
-// cannot be remapped to alternate pins.  For Arduino Uno,
-// Duemilanove, etc., pin 11 = MOSI, pin 12 = MISO, pin 13 = SCK.
-#define TFT_CS  10  // Chip select line for TFT display
-#define TFT_RST  9  // Reset line for TFT (or see below...)
-#define TFT_DC   8  // Data/command line for TFT
-
-#define SD_CS    4  // Chip select line for SD card
-
-Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
-char joystickDirection;
 
 // CONFIGURABLE STUFF --------------------------------------------------------
 
@@ -106,6 +63,7 @@ char joystickDirection;
 // on the Arduino Uno...check datasheet/pinout ref for other board types.
 //#define ENCODERSTEPS 8 // # of steps needed to advance 1 line
 
+
 // NON-CONFIGURABLE STUFF ----------------------------------------------------
 
 #define OVERHEAD 150 // Extra microseconds for loop processing, etc.
@@ -124,8 +82,7 @@ boolean bmpProcess(char *inName, char *outName, uint8_t *brightness);
 
 // INITIALIZATION ------------------------------------------------------------
 
-void setup(void) {
-  Serial.begin(57600);
+void setup() {
   uint8_t  b, startupTrigger, minBrightness;
   char     infile[13], outfile[13];
   boolean  found;
@@ -133,20 +90,19 @@ void setup(void) {
   SdFile   tmp;
   uint32_t lastBlock;
 
-  // read start value right after reset/start
-  // so its best to leave the joystick as is, but you can also hold it in a position to 
-  // set a new default center
-  unsigned int startX = analogRead(A0);
-  unsigned int startY = analogRead(A1);
-  // Arduino Uno Pins A0 for SWX, A1 for SWY and D3 for SW
-  joystick = PS2Joystick(A0, A1, 3, startX, startY); // initialize an instance of the class
 
-  pinMode(LED_PIN, LOW); // Enable NeoPixel output
+  digitalWrite(TRIGGER, HIGH);           // Enable pullup on trigger button
+  startupTrigger = digitalRead(TRIGGER); // Poll startup trigger ASAP
+  Serial.begin(57600);
+  pinMode(LED_PIN, OUTPUT);              // Enable NeoPixel output
   digitalWrite(LED_PIN, LOW);            // Default logic state = low
   port    = portOutputRegister(digitalPinToPort(LED_PIN));
   pinMask = digitalPinToBitMask(LED_PIN);
   memset(sdBuf, 0, N_LEDS * 3);          // Clear LED buffer
   show();                                // Init LEDs to 'off' state
+#ifdef ENCODERSTEPS
+  digitalWrite(5, HIGH);                 // Enable pullup on encoder pin
+#endif
 
   Serial.print(F("Initializing SD card..."));
   if(!sd.begin(CARD_SELECT, SPI_FULL_SPEED)) {
@@ -164,195 +120,106 @@ void setup(void) {
   }
   root.openRoot(&volume);
 #endif
+
+  // This simple application always reads the files 'frameNNN.bmp' in
+  // the root directory; there's no file selection mechanism or UI.
+
+  // If button is held at startup, the processing step is skipped, just
+  // goes right to playback of the prior converted file(s) (if present).
+  if(startupTrigger == HIGH) { // No button press
+
+    // Two passes are made over the input images.  First pass counts the
+    // files and estimates the max brightness level that the power supply
+    // can sustain...
+    minBrightness = 255;
+    do {
+      sprintf(infile, "frame%03d.bmp", nFrames);
+      b = 255; // Assume frame at full brightness to start...
+      // ...it's then modified by the bmpProcess() function here to the
+      // actual brightness limit the UBEC can sustain for *this image*.
+      if(found = bmpProcess(infile, NULL, &b)) {
+        nFrames++;
+        // Keep track of the minimum 'b' value returned for *all images*.
+        // This will later be applied to all, in order that multi-frame
+        // animations can have consistent brightness throughout.
+        if(b < minBrightness) minBrightness = b;
+      }
+    } while(found && (nFrames < 1000));
+
+    Serial.print(nFrames);
+    Serial.print(" frames\nbrightness = ");
+    Serial.println(minBrightness);
+
+    // Read dial, setting brightness between 1 (almost but not quite off)
+    // and the previously-estimated safe max.
+    minBrightness = map(analogRead(BRIGHTNESS), 0, 1023, 1, minBrightness);
   
-  SPI.begin();
-  tft.initR(INITR_BLACKTAB);
-  tft.setRotation(2);
-  tft.setTextWrap(true);
-  tft.setTextColor(ST7735_WHITE);
-
-  loadScreen();
-
-  tft.fillScreen(ST7735_BLACK);
-  tft.setCursor(0, 0);
-  delay(1000);
-}
-
-void loadScreen() {
-  tft.fillScreen(ST7735_BLACK);
-  tft.println("Lightpainting Stick is booting.");
-  Serial.println("Lightpainting Stick is booting.");
-  delay(1000);
-}
-
-void loop() {
-  switch(joystick.direction()) {
-    case JOYSTICK_RIGHT:
-      tft.println("next file opened");
-      Serial.println("next file opened");
-      break;
-    default:
-      break;
-  }
-
-  if (joystick.isPressed()) {
-    tft.println("Loading image: ");
-    Serial.println("Loading image: ");
-    delay(2000);
-  }
-  
-  delay(1000);
-}
-
-void showJoystickDirection() {
-  tft.fillScreen(ST7735_BLACK);
-  tft.setCursor(0, 0);
-  char joystickDirection = joystick.direction();
-  tft.print("Current joystick direction: ");
-  tft.println(joystickDirection);
-  delay(1000);
-}
-
-
-// This function opens a Windows Bitmap (BMP) file and
-// displays it at the given coordinates.  It's sped up
-// by reading many pixels worth of data at a time
-// (rather than pixel by pixel).  Increasing the buffer
-// size takes more of the Arduino's precious RAM but
-// makes loading a little faster.  20 pixels seems a
-// good balance.
-
-#define BUFFPIXEL 20
-
-void bmpDraw(char *filename, uint8_t x, uint8_t y) {
-
-  File     bmpFile;
-  SdFile   tmp;
-  int      bmpWidth, bmpHeight;   // W+H in pixels
-  uint8_t  bmpDepth;              // Bit depth (currently must be 24)
-  uint32_t bmpImageoffset;        // Start of image data in file
-  uint32_t rowSize;               // Not always = bmpWidth; may have padding
-  uint8_t  sdbuffer[3 * BUFFPIXEL]; // pixel buffer (R+G+B per pixel)
-  uint8_t  buffidx = sizeof(sdbuffer); // Current position in sdbuffer
-  boolean  goodBmp = false;       // Set to true on valid header parse
-  boolean  flip    = true;        // BMP is stored bottom-to-top
-  int      w, h, row, col;
-  uint8_t  r, g, b;
-  uint32_t pos = 0, startTime = millis();
-
-  if ((x >= tft.width()) || (y >= tft.height())) return;
-
-  Serial.println();
-  Serial.print("Loading image '");
-  Serial.print(filename);
-  Serial.println('\'');
-
-  // Open requested file on SD card
-  //if ((bmpFile = tmp.open(filename)) == NULL) {
-  //  Serial.print("File not found");
-  //  return;
-  //}
-  
-  // Parse BMP header
-  if (read16(bmpFile) == 0x4D42) { // BMP signature
-    Serial.print("File size: "); Serial.println(read32(bmpFile));
-    (void)read32(bmpFile); // Read & ignore creator bytes
-    bmpImageoffset = read32(bmpFile); // Start of image data
-    Serial.print("Image Offset: "); Serial.println(bmpImageoffset, DEC);
-    // Read DIB header
-    Serial.print("Header size: "); Serial.println(read32(bmpFile));
-    bmpWidth  = read32(bmpFile);
-    bmpHeight = read32(bmpFile);
-    if (read16(bmpFile) == 1) { // # planes -- must be '1'
-      bmpDepth = read16(bmpFile); // bits per pixel
-      Serial.print("Bit Depth: "); Serial.println(bmpDepth);
-      if ((bmpDepth == 24) && (read32(bmpFile) == 0)) { // 0 = uncompressed
-
-        goodBmp = true; // Supported BMP format -- proceed!
-        Serial.print("Image size: ");
-        Serial.print(bmpWidth);
-        Serial.print('x');
-        Serial.println(bmpHeight);
-
-        // BMP rows are padded (if needed) to 4-byte boundary
-        rowSize = (bmpWidth * 3 + 3) & ~3;
-
-        // If bmpHeight is negative, image is in top-down order.
-        // This is not canon but has been observed in the wild.
-        if (bmpHeight < 0) {
-          bmpHeight = -bmpHeight;
-          flip      = false;
-        }
-
-        // Crop area to be loaded
-        w = bmpWidth;
-        h = bmpHeight;
-        if ((x + w - 1) >= tft.width())  w = tft.width()  - x;
-        if ((y + h - 1) >= tft.height()) h = tft.height() - y;
-
-        // Set TFT address window to clipped image bounds
-        tft.setAddrWindow(x, y, x + w - 1, y + h - 1);
-
-        for (row = 0; row < h; row++) { // For each scanline...
-
-          // Seek to start of scan line.  It might seem labor-
-          // intensive to be doing this on every line, but this
-          // method covers a lot of gritty details like cropping
-          // and scanline padding.  Also, the seek only takes
-          // place if the file position actually needs to change
-          // (avoids a lot of cluster math in SD library).
-          if (flip) // Bitmap is stored bottom-to-top order (normal BMP)
-            pos = bmpImageoffset + (bmpHeight - 1 - row) * rowSize;
-          else     // Bitmap is stored top-to-bottom
-            pos = bmpImageoffset + row * rowSize;
-          if (bmpFile.position() != pos) { // Need seek?
-            bmpFile.seek(pos);
-            buffidx = sizeof(sdbuffer); // Force buffer reload
-          }
-
-          for (col = 0; col < w; col++) { // For each pixel...
-            // Time to read more pixel data?
-            if (buffidx >= sizeof(sdbuffer)) { // Indeed
-              bmpFile.read(sdbuffer, sizeof(sdbuffer));
-              buffidx = 0; // Set index to beginning
-            }
-
-            // Convert pixel from BMP to TFT format, push to display
-            b = sdbuffer[buffidx++];
-            g = sdbuffer[buffidx++];
-            r = sdbuffer[buffidx++];
-            tft.pushColor(tft.Color565(r, g, b));
-          } // end pixel
-        } // end scanline
-        Serial.print("Loaded in ");
-        Serial.print(millis() - startTime);
-        Serial.println(" ms");
-      } // end goodBmp
+    // Second pass now applies brightness adjustment while converting
+    // the image(s) from BMP to a raw representation of NeoPixel data
+    // (this outputs the file(s) 'frameNNN.tmp' -- any existing file
+    // by that name will simply be clobbered, IT DOES NOT ASK).
+    for(i=0; i<nFrames; i++) {
+      sprintf(infile , "frame%03d.bmp", i);
+      sprintf(outfile, "frame%03d.tmp", i);
+      b = minBrightness; // Reset b to safe limit on each loop iteration
+      bmpProcess(infile, outfile, &b);
     }
+    while(digitalRead(TRIGGER) == LOW); // Wait for button release
+
+  } else { // Button held -- use existing data
+
+    do { // Scan for files to get nFrames
+      sprintf(infile, "frame%03d.tmp", nFrames);
+      if(found = tmp.open(infile, O_RDONLY)) {
+        if(tmp.contiguousRange(&firstBlock, &lastBlock)) {
+          nFrames++;
+        }
+        tmp.close();
+      }
+    } while(found);
+
+  } // end startupTrigger test
+
+#ifdef ENCODERSTEPS
+  // To use a rotary encoder rather than timer, connect one output
+  // of encoder to T1 pin (digital pin 5 on Arduino Uno).  A small
+  // capacitor across the encoder pins may help for debouncing.
+  TCCR1A = _BV(WGM11) | _BV(WGM10);
+  TCCR1B = _BV(WGM13) | _BV(WGM12) | _BV(CS12) | _BV(CS11);
+#else
+  // Prepare for playback from file; make a full read pass through the
+  // file to estimate block read time (+5% margin) and max playback
+  // lines/sec.  Not all SD cards perform the same.  This makes sure a
+  // reasonable speed limit is used.
+  for(i=0; i<nFrames; i++) { // Scan all files
+    sprintf(infile, "frame%03d.tmp", i);
+    tmp.open(infile, O_RDONLY);
+    tmp.contiguousRange(&firstBlock, &lastBlock);
+    nBlocks = tmp.fileSize() / 512;
+    tmp.close();
+    n = (uint16_t)(1000000L /                         // 1 uSec /
+      (((benchmark(firstBlock, nBlocks) * 21) / 20) + // time + 5% +
+       (N_LEDS * 30L) + OVERHEAD));                   // 30 uSec/pixel
+    if(n > maxLPS) maxLPS = n;
   }
+  if(maxLPS > 400) maxLPS = 400; // NeoPixel PWM rate is ~400 Hz
+  Serial.print(F("Max lines/sec: "));
+  Serial.println(maxLPS);
 
-  bmpFile.close();
-  if (!goodBmp) Serial.println("BMP format not recognized.");
-}
+  // Set up Timer1 for 64:1 prescale (250 KHz clock source),
+  // fast PWM mode, no PWM out.
+  TCCR1A = _BV(WGM11) | _BV(WGM10);
+  TCCR1B = _BV(WGM13) | _BV(WGM12) | _BV(CS11) | _BV(CS10);
+  // Timer1 interrupt is not used; instead, overflow bit is tightly
+  // polled.  Very infrequently a block read may inexplicably take longer
+  // than normal...using an interrupt, the code would clobber itself.
+  // By polling instead, worst case is just a minor glitch where the
+  // corresponding row will be a little thicker than normal.
+#endif
 
-// These read 16- and 32-bit types from the SD card file.
-// BMP data is stored little-endian, Arduino is little-endian too.
-// May need to reverse subscript order if porting elsewhere.
-
-uint16_t read16(File f) {
-  uint16_t result;
-  ((uint8_t *)&result)[0] = f.read(); // LSB
-  ((uint8_t *)&result)[1] = f.read(); // MSB
-  return result;
-}
-
-uint32_t read32(File f) {
-  uint32_t result;
-  ((uint8_t *)&result)[0] = f.read(); // LSB
-  ((uint8_t *)&result)[1] = f.read();
-  ((uint8_t *)&result)[2] = f.read();
-  ((uint8_t *)&result)[3] = f.read(); // MSB
-  return result;
+  // Timer0 interrupt is disabled for smoother playback.
+  // This means delay(), millis(), etc. won't work after this.
+  TIMSK0 = 0;
 }
 
 // Startup error handler; doesn't return, doesn't run loop(), just stops.
@@ -361,6 +228,69 @@ static void error(const __FlashStringHelper *ptr) {
     for(;;);             // and hang
 }
 
+// PLAYBACK LOOP -------------------------------------------------------------
+
+void loop() {
+  uint32_t block    = 0;     // Current block # within file
+  boolean  stopFlag = false; // If set, stop playback loop
+  uint32_t lastBlock;
+  char     infile[13];
+  SdFile   tmp;
+
+  // Get existing contiguous tempfile info
+  sprintf(infile, "frame%03d.tmp", frame);
+  if(!tmp.open(infile, O_RDONLY)) {
+    error(F("Could not open NeoPixel tempfile for input"));
+  }
+  if(!tmp.contiguousRange(&firstBlock, &lastBlock)) {
+    error(F("NeoPixel tempfile is not contiguous"));
+  }
+  // Number of blocks needs to be calculated from file size, not the
+  // range values.  The contiguous file creation and range functions
+  // work on cluster boundaries, not necessarily the actual file size.
+  nBlocks = tmp.fileSize() / 512;
+
+  tmp.close(); // File handle is no longer accessed, just block reads
+
+  // Stage first block, but don't display yet -- the loop below
+  // does that only when Timer1 overflows.
+  sd.card()->readBlock(firstBlock, sdBuf);
+  // readBlock is used rather than readStart/readData/readEnd as
+  // the duration between block reads may exceed the SD timeout.
+
+  while(digitalRead(TRIGGER) == HIGH);   // Wait for trigger button
+
+#ifdef ENCODERSTEPS
+  // Set up for rotary encoder
+  TCNT1 = 0;
+  OCR1A = ENCODERSTEPS;
+#else
+  // Set up timer based on dial input
+  uint32_t linesPerSec = map(analogRead(SPEED), 0, 1023, 10, maxLPS);
+  // Serial.println(linesPerSec);
+  OCR1A = (F_CPU / 64) / linesPerSec;          // Timer1 interval
+#endif
+
+  for(;;) {
+    while(!(TIFR1 & _BV(TOV1)));               // Wait for Timer1 overflow
+    TIFR1 |= _BV(TOV1);                        // Clear overflow bit
+
+    show();                                    // Display current line
+    if(stopFlag) break;                        // Break when done
+
+    if(++block >= nBlocks) {                   // Past last block?
+      if(digitalRead(TRIGGER) == HIGH) {       // Trigger released?
+        memset(sdBuf, 0, N_LEDS * 3);          // LEDs off on next pass
+        stopFlag = true;                       // Stop playback on next pass
+        continue;
+      }                                        // Else trigger still held
+      block = 0;                               // Loop back to start
+    }
+    sd.card()->readBlock(block + firstBlock, sdBuf); // Load next pixel row
+  }
+
+  if(++frame >= nFrames) frame = 0;
+}
 
 // BMP->NEOPIXEL FILE CONVERSION ---------------------------------------------
 
