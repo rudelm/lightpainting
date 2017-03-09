@@ -76,8 +76,21 @@ PS2Joystick joystick;
 
 #define SD_CS    4  // Chip select line for SD card
 
-Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
-char joystickDirection;
+Adafruit_ST7735 display = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
+
+#define X_AXIS   A0 // X-Axis of the joystick
+#define Y_AXIS   A1 // Y-Axis of the joystick
+#define BUTTON   3  // Center button of the joystick
+
+int startDelay = 0;
+
+volatile boolean up = false;
+volatile boolean down = false;
+volatile boolean middle = false;
+
+// TFT Menu
+int menuitem = 1;
+int page = 1;
 
 // CONFIGURABLE STUFF --------------------------------------------------------
 
@@ -134,10 +147,10 @@ void setup(void) {
   joystick = PS2Joystick(A0, A1, 3, startX, startY); // initialize an instance of the class
 
   SPI.begin();
-  tft.initR(INITR_BLACKTAB);
-  tft.setRotation(2);
-  tft.setTextWrap(true);
-  tft.setTextColor(ST7735_WHITE);
+  display.initR(INITR_BLACKTAB);
+  display.setRotation(2);
+  display.setTextWrap(true);
+  display.setTextColor(ST7735_WHITE);
 
   loadScreen();
 
@@ -284,20 +297,166 @@ void setup(void) {
 
 // Startup error handler; doesn't return, doesn't run loop(), just stops.
 static void error(const __FlashStringHelper *ptr) {
-  tft.fillScreen(ST7735_BLACK);
-  tft.println(ptr);
+  display.fillScreen(ST7735_BLACK);
+  display.println(ptr);
   Serial.println(ptr); // Show message
   for(;;);             // and hang
 }
 
 void loop() {
+  drawMenu();
+
+  checkIfDownButtonIsPressed();
+  checkIfUpButtonIsPressed();
+  checkIfSelectButtonIsPressed();
+
+  if (up && page == 1 ) {
+    up = false;
+    menuitem--;
+    if (menuitem==0)
+    {
+      menuitem=3;
+    }      
+  } else if (up && page == 2 ) {
+    up = false;
+    startDelay--;
+  }
+
+
+  if (down && page == 1) {
+    down = false;
+    menuitem++;
+    if (menuitem==4) 
+    {
+      menuitem=1;
+    }      
+  } else if (down && page == 2 ) {
+    down = false;
+    startDelay++;
+  }
+
+
+  if (middle) {
+    middle = false;
+    
+    if (page == 1 && menuitem==2) 
+    {
+      //backlight
+    }
+
+    if(page == 1 && menuitem ==3)
+    {
+      //reset
+    }
+
+
+    else if (page == 1 && menuitem==1) {
+      page=2;
+     }
+    else if (page == 2) {
+      page=1;
+     }
+   }
+  
   char     infile[13];
 
   // Get existing contiguous tempfile info
-  sprintf(infile, "frame%03d.tmp", frame);
+  //sprintf(infile, "frame%03d.tmp", frame);
 
-  displayFile(infile);
+  //displayFile(infile);
 }
+
+// LCD Menu code
+
+void checkIfDownButtonIsPressed() {
+  if (analogRead(Y_AXIS) >= 420) {
+    down = true;
+  } else {
+    down = false;
+  }
+}
+
+void checkIfUpButtonIsPressed() {
+  if (analogRead(Y_AXIS) <= 400) {
+    up = true;
+  } else {
+    up = false;
+  }
+}
+
+void checkIfSelectButtonIsPressed() {
+  if (digitalRead(BUTTON) == LOW) {
+    middle = true;
+  } else {
+    middle = false;
+  }
+}
+
+void drawMenu() {
+  if (page==1) 
+  {    
+    display.setTextSize(1);
+    clearScreen();
+    display.setTextColor(ST7735_WHITE, ST7735_BLACK);
+    display.setCursor(15, 0);
+    display.print("MAIN MENU");
+    display.drawFastHLine(0,10,83,ST7735_WHITE);
+    display.setCursor(0, 15);
+   
+    if (menuitem==1) 
+    { 
+      display.setTextColor(ST7735_BLACK, ST7735_WHITE);
+    }
+    else 
+    {
+      display.setTextColor(ST7735_WHITE, ST7735_BLACK);
+    }
+    display.print(">Contrast");
+    display.setCursor(0, 25);
+   
+    if (menuitem==2) 
+    {
+      display.setTextColor(ST7735_BLACK, ST7735_WHITE);
+    }
+    else 
+    {
+      display.setTextColor(ST7735_WHITE, ST7735_BLACK);
+    }    
+    display.print(">Light: ");
+    
+    if (menuitem==3) 
+    { 
+      display.setTextColor(ST7735_BLACK, ST7735_WHITE);
+    }
+    else 
+    {
+      display.setTextColor(ST7735_WHITE, ST7735_BLACK);
+    }  
+    display.setCursor(0, 35);
+    display.print(">Reset");
+  }
+    
+ 
+  else if (page==2) 
+  {
+    
+    display.setTextSize(1);
+    clearScreen();
+    display.setTextColor(ST7735_WHITE, ST7735_BLACK);
+    display.setCursor(15, 0);
+    display.print("Start Delay in ms");
+    display.drawFastHLine(0,10,83,ST7735_WHITE);
+    display.setCursor(5, 15);
+    display.print("Value");
+    display.setTextSize(2);
+    display.setCursor(5, 25);
+    display.print(startDelay);
+ 
+    display.setTextSize(2);
+  }
+}
+
+// NeoPixel display code
 
 void displayFile(char *infile) {
   uint32_t block    = 0;     // Current block # within file
@@ -624,23 +783,23 @@ static void show(void) {
 }
 
 void clearScreen() {
-  tft.fillScreen(ST7735_BLACK);
-  tft.setCursor(0, 0);
+  display.fillScreen(ST7735_BLACK);
+  display.setCursor(0, 0);
 }
 
 void loadScreen() {
-  tft.fillScreen(ST7735_BLACK);
-  tft.println("Lightpainting Stick is booting.");
+  display.fillScreen(ST7735_BLACK);
+  display.println("Lightpainting Stick is booting.");
   Serial.println("Lightpainting Stick is booting.");
 }
 
 
 void showJoystickDirection() {
-  tft.fillScreen(ST7735_BLACK);
-  tft.setCursor(0, 0);
+  display.fillScreen(ST7735_BLACK);
+  display.setCursor(0, 0);
   char joystickDirection = joystick.direction();
-  tft.print("Current joystick direction: ");
-  tft.println(joystickDirection);
+  display.print("Current joystick direction: ");
+  display.println(joystickDirection);
   delay(1000);
 }
 
@@ -670,7 +829,7 @@ void bmpDraw(char *filename, uint8_t x, uint8_t y) {
   uint8_t  r, g, b;
   uint32_t pos = 0, startTime = millis();
 
-  if ((x >= tft.width()) || (y >= tft.height())) return;
+  if ((x >= display.width()) || (y >= display.height())) return;
 
   Serial.println();
   Serial.print("Loading image '");
@@ -717,11 +876,11 @@ void bmpDraw(char *filename, uint8_t x, uint8_t y) {
         // Crop area to be loaded
         w = bmpWidth;
         h = bmpHeight;
-        if ((x + w - 1) >= tft.width())  w = tft.width()  - x;
-        if ((y + h - 1) >= tft.height()) h = tft.height() - y;
+        if ((x + w - 1) >= display.width())  w = display.width()  - x;
+        if ((y + h - 1) >= display.height()) h = display.height() - y;
 
         // Set TFT address window to clipped image bounds
-        tft.setAddrWindow(x, y, x + w - 1, y + h - 1);
+        display.setAddrWindow(x, y, x + w - 1, y + h - 1);
 
         for (row = 0; row < h; row++) { // For each scanline...
 
@@ -751,7 +910,7 @@ void bmpDraw(char *filename, uint8_t x, uint8_t y) {
             b = sdbuffer[buffidx++];
             g = sdbuffer[buffidx++];
             r = sdbuffer[buffidx++];
-            tft.pushColor(tft.Color565(r, g, b));
+            display.pushColor(display.Color565(r, g, b));
           } // end pixel
         } // end scanline
         Serial.print("Loaded in ");
