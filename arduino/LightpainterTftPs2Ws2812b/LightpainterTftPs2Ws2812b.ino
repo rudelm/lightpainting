@@ -217,7 +217,7 @@ void setup(void) {
     } while(found && (nFrames < 1000));
 
     Serial.print(nFrames);
-    Serial.print(" frames\nbrightness = ");
+    Serial.print(F(" frames\nbrightness = "));
     Serial.println(minBrightness);
 
     // Read dial, setting brightness between 1 (almost but not quite off)
@@ -349,7 +349,7 @@ void loop() {
 
     if(page == 1 && menuitem ==3)
     {
-      //reset
+      //bmpDraw(infile, 0, 0);
     }
 
 
@@ -400,7 +400,7 @@ void drawMenu() {
     }
     display.setTextColor(ST7735_WHITE, ST7735_BLACK);
     display.setCursor(15, 0);
-    display.print("MAIN MENU");
+    display.print(F("MAIN MENU"));
     display.drawFastHLine(0,10,83,ST7735_WHITE);
     display.setCursor(0, 15);
    
@@ -412,7 +412,7 @@ void drawMenu() {
     {
       display.setTextColor(ST7735_WHITE, ST7735_BLACK);
     }
-    display.print(">Contrast");
+    display.print(F(">Contrast"));
     display.setCursor(0, 25);
    
     if (menuitem==2) 
@@ -423,7 +423,7 @@ void drawMenu() {
     {
       display.setTextColor(ST7735_WHITE, ST7735_BLACK);
     }    
-    display.print(">Play Frame #: ");
+    display.print(F(">Play Frame #: "));
     display.print(frame);
     
     if (menuitem==3) 
@@ -435,7 +435,7 @@ void drawMenu() {
       display.setTextColor(ST7735_WHITE, ST7735_BLACK);
     }  
     display.setCursor(0, 35);
-    display.print(">Bitmap preview");
+    display.print(F(">Bitmap preview"));
   }
     
  
@@ -448,10 +448,10 @@ void drawMenu() {
     }
     display.setTextColor(ST7735_WHITE, ST7735_BLACK);
     display.setCursor(15, 0);
-    display.print("Start Delay in ms");
+    display.print(F("Start Delay in ms"));
     display.drawFastHLine(0,10,83,ST7735_WHITE);
     display.setCursor(5, 15);
-    display.print("Value");
+    display.print(F("Value"));
     display.setTextSize(2);
     display.setCursor(5, 25);
     display.print(startDelay);
@@ -826,7 +826,7 @@ void bmpDraw(char *filename, uint8_t x, uint8_t y) {
   if ((x >= display.width()) || (y >= display.height())) return;
 
   Serial.println();
-  Serial.print("Loading image '");
+  Serial.print(F("Loading image '"));
   Serial.print(filename);
   Serial.println('\'');
 
@@ -838,21 +838,21 @@ void bmpDraw(char *filename, uint8_t x, uint8_t y) {
   
   // Parse BMP header
   if (read16(bmpFile) == 0x4D42) { // BMP signature
-    Serial.print("File size: "); Serial.println(read32(bmpFile));
+    Serial.print(F("File size: ")); Serial.println(read32(bmpFile));
     (void)read32(bmpFile); // Read & ignore creator bytes
     bmpImageoffset = read32(bmpFile); // Start of image data
-    Serial.print("Image Offset: "); Serial.println(bmpImageoffset, DEC);
+    Serial.print(F("Image Offset: ")); Serial.println(bmpImageoffset, DEC);
     // Read DIB header
-    Serial.print("Header size: "); Serial.println(read32(bmpFile));
+    Serial.print(F("Header size: ")); Serial.println(read32(bmpFile));
     bmpWidth  = read32(bmpFile);
     bmpHeight = read32(bmpFile);
     if (read16(bmpFile) == 1) { // # planes -- must be '1'
       bmpDepth = read16(bmpFile); // bits per pixel
-      Serial.print("Bit Depth: "); Serial.println(bmpDepth);
+      Serial.print(F("Bit Depth: ")); Serial.println(bmpDepth);
       if ((bmpDepth == 24) && (read32(bmpFile) == 0)) { // 0 = uncompressed
 
         goodBmp = true; // Supported BMP format -- proceed!
-        Serial.print("Image size: ");
+        Serial.print(F("Image size: "));
         Serial.print(bmpWidth);
         Serial.print('x');
         Serial.println(bmpHeight);
