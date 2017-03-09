@@ -303,6 +303,10 @@ static void error(const __FlashStringHelper *ptr) {
 }
 
 void loop() {
+  char     infile[13];
+  // Get existing contiguous tempfile info
+  sprintf(infile, "frame%03d.tmp", frame);
+      
   drawMenu();
 
   checkIfDownButtonIsPressed();
@@ -340,7 +344,7 @@ void loop() {
     
     if (page == 1 && menuitem==2) 
     {
-      //backlight
+      displayFile(infile);
     }
 
     if(page == 1 && menuitem ==3)
@@ -356,13 +360,6 @@ void loop() {
       page=1;
      }
    }
-  
-  char     infile[13];
-
-  // Get existing contiguous tempfile info
-  //sprintf(infile, "frame%03d.tmp", frame);
-
-  //displayFile(infile);
 }
 
 // LCD Menu code
@@ -426,7 +423,8 @@ void drawMenu() {
     {
       display.setTextColor(ST7735_WHITE, ST7735_BLACK);
     }    
-    display.print(">Light: ");
+    display.print(">Play Frame #: ");
+    display.print(frame);
     
     if (menuitem==3) 
     { 
@@ -437,7 +435,7 @@ void drawMenu() {
       display.setTextColor(ST7735_WHITE, ST7735_BLACK);
     }  
     display.setCursor(0, 35);
-    display.print(">Reset");
+    display.print(">Bitmap preview");
   }
     
  
