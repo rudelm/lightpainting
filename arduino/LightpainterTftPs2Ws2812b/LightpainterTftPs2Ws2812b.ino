@@ -291,14 +291,21 @@ static void error(const __FlashStringHelper *ptr) {
 }
 
 void loop() {
-  uint32_t block    = 0;     // Current block # within file
-  boolean  stopFlag = false; // If set, stop playback loop
-  uint32_t lastBlock;
   char     infile[13];
-  SdFile   tmp;
 
   // Get existing contiguous tempfile info
   sprintf(infile, "frame%03d.tmp", frame);
+
+  displayFile(infile);
+}
+
+void displayFile(char *infile) {
+  uint32_t block    = 0;     // Current block # within file
+  boolean  stopFlag = false; // If set, stop playback loop
+  uint32_t lastBlock;
+
+  SdFile   tmp;
+  
   if(!tmp.open(infile, O_RDONLY)) {
     error(F("Could not open NeoPixel tempfile for input"));
   }
