@@ -304,8 +304,10 @@ static void error(const __FlashStringHelper *ptr) {
 
 void loop() {
   char     infile[13];
+  char     inbmpfile[13];
   // Get existing contiguous tempfile info
   sprintf(infile, "frame%03d.tmp", frame);
+  sprintf(inbmpfile, "frame%03d.bmp", frame);
       
   drawMenu();
 
@@ -349,7 +351,7 @@ void loop() {
 
     if(page == 1 && menuitem ==3)
     {
-      //bmpDraw(infile, 0, 0);
+      bmpDraw(inbmpfile, 0, 0);
     }
 
 
@@ -915,7 +917,7 @@ void bmpDraw(char *filename, uint8_t x, uint8_t y) {
   }
 
   bmpFile.close();
-  if (!goodBmp) Serial.println("BMP format not recognized.");
+  if (!goodBmp) Serial.println(F("BMP format not recognized."));
 }
 
 // These read 16- and 32-bit types from the SD card file.
