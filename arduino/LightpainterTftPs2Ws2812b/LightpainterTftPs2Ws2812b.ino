@@ -367,7 +367,7 @@ void loop() {
 // LCD Menu code
 
 void checkIfDownButtonIsPressed() {
-  if (analogRead(Y_AXIS) >= 420) {
+  if (analogRead(Y_AXIS) >= 500) {
     down = true;
   } else {
     down = false;
@@ -376,7 +376,7 @@ void checkIfDownButtonIsPressed() {
 }
 
 void checkIfUpButtonIsPressed() {
-  if (analogRead(Y_AXIS) <= 400) {
+  if (analogRead(Y_AXIS) <= 350) {
     up = true;
   } else {
     up = false;
