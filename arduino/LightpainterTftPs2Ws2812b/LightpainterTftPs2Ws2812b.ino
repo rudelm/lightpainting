@@ -23,7 +23,6 @@
 #include <Adafruit_GFX.h>    // Core graphics library
 #include <Adafruit_ST7735.h> // Hardware-specific library
 #include <SPI.h>
-#include <PS2Joystick.h>
 #include <Adafruit_NeoPixel.h>
 
 
@@ -64,8 +63,6 @@
 #include <avr/pgmspace.h>
 #include "./gamma.h"
 
-PS2Joystick joystick;
-
 // TFT display and SD card will share the hardware SPI interface.
 // Hardware SPI pins are specific to the Arduino board type and
 // cannot be remapped to alternate pins.  For Arduino Uno,
@@ -78,6 +75,7 @@ PS2Joystick joystick;
 
 Adafruit_ST7735 display = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
 
+// Arduino Uno Pins A0 for SWX, A1 for SWY and D3 for SW
 #define X_AXIS   A0 // X-Axis of the joystick
 #define Y_AXIS   A1 // Y-Axis of the joystick
 #define BUTTON   3  // Center button of the joystick
@@ -86,7 +84,10 @@ int startDelay = 0;
 
 volatile boolean up = false;
 volatile boolean down = false;
-volatile boolean middle = false;
+volatile boolean select = false;
+volatile boolean previousUp = false;
+volatile boolean previousDown = false;
+volatile boolean previousSelect = false;
 
 // TFT Menu
 int menuitem = 1;
@@ -143,8 +144,6 @@ void setup(void) {
   // set a new default center
   unsigned int startX = analogRead(A0);
   unsigned int startY = analogRead(A1);
-  // Arduino Uno Pins A0 for SWX, A1 for SWY and D3 for SW
-  joystick = PS2Joystick(A0, A1, 3, startX, startY); // initialize an instance of the class
 
   SPI.begin();
   display.initR(INITR_BLACKTAB);
@@ -336,8 +335,8 @@ void loop() {
   }
 
 
-  if (middle) {
-    middle = false;
+  if (select) {
+    select = false;
     
     if (page == 1 && menuitem==2) 
     {
@@ -374,6 +373,7 @@ void checkIfDownButtonIsPressed() {
   } else {
     down = false;
   }
+  previousDown = down;
 }
 
 void checkIfUpButtonIsPressed() {
@@ -382,21 +382,25 @@ void checkIfUpButtonIsPressed() {
   } else {
     up = false;
   }
+  previousUp = up;
 }
 
 void checkIfSelectButtonIsPressed() {
   if (digitalRead(BUTTON) == LOW) {
-    middle = true;
+    select = true;
   } else {
-    middle = false;
+    select = false;
   }
+  previousSelect = select;
 }
 
 void drawMenu() {
   if (page==1) 
   {    
     display.setTextSize(1);
-    clearScreen();
+    if (previousSelect || previousUp || previousDown) {
+      clearScreen();  
+    }
     display.setTextColor(ST7735_WHITE, ST7735_BLACK);
     display.setCursor(15, 0);
     display.print("MAIN MENU");
@@ -441,7 +445,9 @@ void drawMenu() {
   {
     
     display.setTextSize(1);
-    clearScreen();
+    if (previousSelect || previousUp || previousDown) {
+      clearScreen();  
+    }
     display.setTextColor(ST7735_WHITE, ST7735_BLACK);
     display.setCursor(15, 0);
     display.print("Start Delay in ms");
@@ -791,16 +797,6 @@ void loadScreen() {
   display.fillScreen(ST7735_BLACK);
   display.println("Lightpainting Stick is booting.");
   Serial.println("Lightpainting Stick is booting.");
-}
-
-
-void showJoystickDirection() {
-  display.fillScreen(ST7735_BLACK);
-  display.setCursor(0, 0);
-  char joystickDirection = joystick.direction();
-  display.print("Current joystick direction: ");
-  display.println(joystickDirection);
-  delay(1000);
 }
 
 // This function opens a Windows Bitmap (BMP) file and
