@@ -284,8 +284,10 @@ void setup(void) {
 
 // Startup error handler; doesn't return, doesn't run loop(), just stops.
 static void error(const __FlashStringHelper *ptr) {
-    Serial.println(ptr); // Show message
-    for(;;);             // and hang
+  tft.fillScreen(ST7735_BLACK);
+  tft.println(ptr);
+  Serial.println(ptr); // Show message
+  for(;;);             // and hang
 }
 
 void loop() {
